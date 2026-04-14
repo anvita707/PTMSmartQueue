@@ -1,0 +1,113 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f4f8;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+
+.app-container {
+    background-color: white;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+h1 { color: #003366; }
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+button:hover { background-color: #45a049; }
+.back-btn { background-color: #f44336; }
+.start-btn { background-color: #008CBA; }
+.complete-btn { background-color: #ff9800; }
+.refresh-btn { background-color: #9c27b0; padding: 5px 10px; font-size: 14px;}
+
+input[type="password"] {
+    padding: 10px;
+    font-size: 24px;
+    margin-bottom: 20px;
+    width: 150px;
+    text-align: center;
+    letter-spacing: 10px;
+    border-radius: 5px;
+    border: 2px solid #ccc;
+}
+
+input[type="password"]:focus {
+    border-color: #4CAF50;
+    outline: none;
+}
+
+.timer-display {
+    font-size: 24px;
+    font-weight: bold;
+    color: #d32f2f;
+}
+
+ul { list-style-type: none; padding: 0; }
+
+li {
+    background-color: #eee;
+    margin: 5px 0;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.teacher-item {
+    text-align: left;
+    margin-left: 20px;
+    margin-bottom: 10px;
+}
+
+.student-summary {
+    background-color: #e3f2fd;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: left;
+    margin: 10px 0;
+    border: 1px solid #bbdefb;
+}
+
+.student-summary textarea {
+    width: 90%;
+    height: 60px;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-family: inherit;
+}
+
+/* NEW STYLING FOR THE TABLE */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background-color: white;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    background-color: #003366;
+    color: white;
+}

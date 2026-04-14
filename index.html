@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PTM Smart Queue</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <h1>R N Podar PTM Queue</h1>
+
+        <div id="home-screen" class="screen active">
+            <h2>Welcome! Who is logging in?</h2>
+            <button onclick="showScreen('login-parent-screen')">Login as Parent</button>
+            <button onclick="showScreen('login-teacher-screen')">Login as Teacher</button>
+        </div>
+
+        <div id="login-parent-screen" class="screen">
+            <h2>Parent Login</h2>
+            <p>Please enter your 4-digit student access code:</p>
+            <input type="password" id="parent-code-input" placeholder="****" maxlength="4">
+            <br>
+            <button onclick="enterParentDashboard()">Secure Login</button>
+            <button class="back-btn" onclick="logout()">Back</button>
+        </div>
+
+        <div id="login-teacher-screen" class="screen">
+            <h2>Teacher Login</h2>
+            <p>Please enter your 4-digit teacher access code:</p>
+            <input type="password" id="teacher-code-input" placeholder="****" maxlength="4">
+            <br>
+            <button onclick="enterTeacherDashboard()">Secure Login</button>
+            <button class="back-btn" onclick="logout()">Back</button>
+        </div>
+
+        <div id="parent-screen" class="screen">
+            <h2>Parent Dashboard: <span id="welcome-parent-name"></span></h2>
+            <p>Select up to 6 teachers you wish to meet:</p>
+            <div id="teacher-checkboxes">
+                </div>
+            <h3>Your Live Queue Status</h3>
+            <button class="refresh-btn" onclick="renderParentQueue()">Refresh Wait Times</button>
+            <ul id="parent-queue-list">
+                </ul>
+            <button class="back-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div id="teacher-screen" class="screen">
+            <h2>Teacher Dashboard: <span id="welcome-teacher-name"></span></h2>
+            
+            <div class="meeting-controls" id="meeting-panel">
+                <h3>Current Meeting: <span id="current-parent">No one waiting</span></h3>
+                
+                <div class="student-summary" id="student-summary">
+                    <p><strong>Child Name:</strong> <span id="child-name">-</span></p>
+                    <p><strong>Grade/Section:</strong> <span id="child-grade">-</span></p>
+                    <p><strong>Attendance:</strong> <span id="child-attendance">-</span></p>
+                    <textarea id="teacher-notes" placeholder="Type your notes for the parents here..."></textarea>
+                </div>
+
+                <p class="timer-display">Meeting Time: <span id="timer">00:00</span></p>
+                <button class="start-btn" onclick="startTimer()">Start Meeting</button>
+                <button class="complete-btn" onclick="completeMeeting()">Mark Complete</button>
+            </div>
+
+            <h3>Next in Queue</h3>
+            <ul id="teacher-queue-list">
+                </ul>
+
+            <h3>Completed Meetings</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Child Name</th>
+                        <th>Time Taken</th>
+                        <th>Meeting Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="completed-meetings-list">
+                    </tbody>
+            </table>
+
+            <button class="back-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
