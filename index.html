@@ -35,13 +35,29 @@
 
         <div id="parent-screen" class="screen">
             <h2>Parent Dashboard: <span id="welcome-parent-name"></span></h2>
+            
             <p>Select up to 6 teachers you wish to meet:</p>
             <div id="teacher-checkboxes">
                 </div>
+            
             <h3>Your Live Queue Status</h3>
             <button class="refresh-btn" onclick="renderParentQueue()">Refresh Wait Times</button>
             <ul id="parent-queue-list">
                 </ul>
+
+            <h3>Your Completed Meetings</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Teacher</th>
+                        <th>Time Taken</th>
+                        <th>Meeting Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="parent-completed-list">
+                    </tbody>
+            </table>
+
             <button class="back-btn" onclick="logout()">Logout</button>
         </div>
 

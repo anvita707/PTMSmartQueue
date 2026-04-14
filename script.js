@@ -54,15 +54,15 @@ let students = rawStudentData.map((student, index) => {
     };
 });
 
-// MULTI-TEACHER DATABASES
 let queues = {};
 let completedMeetings = {}; 
+let activeMeetings = {}; // NEW: Tracks who is currently inside the classroom!
 let teacherSeconds = {}; 
 
-// Initialize empty lists first
 teachers.forEach(teacher => {
     queues[teacher] = []; 
     completedMeetings[teacher] = [];
+    activeMeetings[teacher] = null; 
     teacherSeconds[teacher] = 0;
 });
 
@@ -70,50 +70,61 @@ let currentStudent = null;
 let currentTeacher = null;
 let timerInterval;
 
-// --- NEW MAGIC: LOCALSTORAGE SYNCING ---
+// 2. MATH & ALGORITHMS
+function timeStrToSeconds(timeStr) {
+    let parts = timeStr.split(":");
+    return (parseInt(parts[0]) * 60) + parseInt(parts[1]);
+}
 
+function getTeacherAverage(teacher) {
+    let meetings = completedMeetings[teacher];
+    if (meetings.length === 0) return 10; 
+
+    let totalSeconds = 0;
+    meetings.forEach(m => { totalSeconds += timeStrToSeconds(m.timeTaken); });
+    
+    let avgSeconds = totalSeconds / meetings.length;
+    let avgMinutes = Math.round(avgSeconds / 60);
+    
+    return Math.max(1, avgMinutes); 
+}
+
+// 3. STORAGE SYNC
 function saveData() {
     localStorage.setItem('ptm_queues', JSON.stringify(queues));
     localStorage.setItem('ptm_completed', JSON.stringify(completedMeetings));
+    localStorage.setItem('ptm_active', JSON.stringify(activeMeetings)); // Sync active meetings!
 }
 
 function loadData() {
     let savedQueues = localStorage.getItem('ptm_queues');
-    if (savedQueues) {
-        queues = JSON.parse(savedQueues);
-    }
+    if (savedQueues) queues = JSON.parse(savedQueues);
+    
     let savedCompleted = localStorage.getItem('ptm_completed');
-    if (savedCompleted) {
-        completedMeetings = JSON.parse(savedCompleted);
-    }
+    if (savedCompleted) completedMeetings = JSON.parse(savedCompleted);
+    
+    let savedActive = localStorage.getItem('ptm_active');
+    if (savedActive) activeMeetings = JSON.parse(savedActive);
 }
 
-// This listens for updates from OTHER windows/tabs
 window.addEventListener('storage', function(e) {
     loadData();
-    // If the parent screen is visible, update it live!
     if (document.getElementById('parent-screen').classList.contains('active')) {
         renderTeacherCheckboxes();
         renderParentQueue();
+        renderParentCompletedMeetings();
     }
-    // If the teacher screen is visible, update it live!
     if (document.getElementById('teacher-screen').classList.contains('active')) {
         renderTeacherQueue();
         renderCompletedMeetings();
     }
 });
 
-// Load any existing data when the page first opens
-window.onload = function() {
-    loadData();
-};
+window.onload = function() { loadData(); };
 
-// ----------------------------------------
-
+// 4. NAVIGATION
 function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.remove('active');
-    });
+    document.querySelectorAll('.screen').forEach(screen => { screen.classList.remove('active'); });
     document.getElementById(screenId).classList.add('active');
 }
 
@@ -122,9 +133,9 @@ function logout() {
     showScreen('home-screen');
 }
 
-// 3. PARENT FUNCTIONS
+// 5. PARENT FUNCTIONS (UPDATED)
 function enterParentDashboard() {
-    loadData(); // Make sure we have the latest data before logging in
+    loadData(); 
     const enteredCode = document.getElementById("parent-code-input").value;
     const matchedStudent = students.find(s => s.code === enteredCode);
     
@@ -135,6 +146,7 @@ function enterParentDashboard() {
         
         renderTeacherCheckboxes();
         renderParentQueue();
+        renderParentCompletedMeetings(); // Load their personal history!
         showScreen('parent-screen');
     } else {
         alert("Invalid code. Please check your 4-digit student code.");
@@ -154,30 +166,40 @@ function renderTeacherCheckboxes() {
         checkbox.value = teacher;
         checkbox.id = "chk-" + teacher;
         
-        if (queues[teacher].find(s => s.id === currentStudent.id)) {
-            checkbox.checked = true;
-        }
-        
-        checkbox.addEventListener('change', function() {
-            let currentlySelectedCount = teachers.filter(t => queues[t].find(s => s.id === currentStudent.id)).length;
-            
-            if (this.checked) {
-                if (currentlySelectedCount >= 6) {
-                    alert("You can only select up to 6 teachers!");
-                    this.checked = false;
-                } else {
-                    queues[teacher].push(currentStudent);
-                }
-            } else {
-                queues[teacher] = queues[teacher].filter(s => s.id !== currentStudent.id);
-            }
-            saveData(); // MAGIC: Save changes immediately so other windows see it
-            renderParentQueue();
-        });
-
         const label = document.createElement('label');
         label.htmlFor = "chk-" + teacher;
         label.innerText = " " + teacher;
+
+        // Check if the parent has already completed a meeting with this teacher
+        let hasCompleted = completedMeetings[teacher].find(m => m.childName === currentStudent.childName);
+        
+        if (hasCompleted) {
+            checkbox.disabled = true; // Lock it!
+            label.innerText = " " + teacher + " (Meeting Completed)";
+            label.style.color = "#999";
+        } else {
+            // Only allow checking if not completed
+            if (queues[teacher].find(s => s.id === currentStudent.id)) {
+                checkbox.checked = true;
+            }
+            
+            checkbox.addEventListener('change', function() {
+                let currentlySelectedCount = teachers.filter(t => queues[t].find(s => s.id === currentStudent.id)).length;
+                
+                if (this.checked) {
+                    if (currentlySelectedCount >= 6) {
+                        alert("You can only select up to 6 teachers!");
+                        this.checked = false;
+                    } else {
+                        queues[teacher].push(currentStudent);
+                    }
+                } else {
+                    queues[teacher] = queues[teacher].filter(s => s.id !== currentStudent.id);
+                }
+                saveData(); 
+                renderParentQueue();
+            });
+        }
 
         div.appendChild(checkbox);
         div.appendChild(label);
@@ -188,28 +210,78 @@ function renderTeacherCheckboxes() {
 function renderParentQueue() {
     const queueList = document.getElementById('parent-queue-list');
     queueList.innerHTML = ""; 
+    let myWaitData = [];
 
     teachers.forEach(teacher => {
         let queuePosition = queues[teacher].findIndex(s => s.id === currentStudent.id);
         
-        if (queuePosition !== -1) {
+        // Is this specific parent currently in a meeting with this teacher?
+        let isMeetingActive = (activeMeetings[teacher] === currentStudent.id);
+        
+        if (isMeetingActive) {
+            myWaitData.push({
+                teacherName: teacher,
+                position: 0, 
+                waitTimeText: `<span class="in-progress">MEETING IN PROGRESS! Please go inside.</span>`,
+                sortValue: -1 // Forces it to the very top of the list!
+            });
+        } else if (queuePosition !== -1) {
             let actualPosition = queuePosition + 1; 
-            let waitTime = queuePosition * 10; 
+            let teacherAvg = getTeacherAverage(teacher); 
+            let totalWaitTime = queuePosition * teacherAvg; 
             
-            const li = document.createElement('li');
-            li.innerHTML = `<strong>${teacher}</strong> <br> Position: #${actualPosition} | Est. Wait: ${waitTime} mins`;
-            queueList.appendChild(li);
+            myWaitData.push({
+                teacherName: teacher,
+                position: actualPosition,
+                waitTimeText: `Est. Wait: ${totalWaitTime} mins <br><small>(Teacher's avg: ${teacherAvg} min/meeting)</small>`,
+                sortValue: totalWaitTime
+            });
         }
     });
 
+    myWaitData.sort((a, b) => a.sortValue - b.sortValue);
+
+    myWaitData.forEach(data => {
+        const li = document.createElement('li');
+        let positionText = data.position === 0 ? "NOW" : "#" + data.position;
+        li.innerHTML = `<strong>${data.teacherName}</strong> <br> Position: ${positionText} | ${data.waitTimeText}`;
+        queueList.appendChild(li);
+    });
+
     if(queueList.innerHTML === "") {
-        queueList.innerHTML = "<li>You have not joined any queues yet.</li>";
+        queueList.innerHTML = "<li>You are not in any waiting lines.</li>";
     }
 }
 
-// 4. TEACHER FUNCTIONS
+function renderParentCompletedMeetings() {
+    const tableBody = document.getElementById('parent-completed-list');
+    tableBody.innerHTML = "";
+    let hasAny = false;
+
+    teachers.forEach(teacher => {
+        // Find any records for this specific child
+        let myRecords = completedMeetings[teacher].filter(m => m.childName === currentStudent.childName);
+        
+        myRecords.forEach(meeting => {
+            hasAny = true;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${teacher}</td>
+                <td>${meeting.timeTaken}</td>
+                <td>${meeting.notes}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    });
+
+    if (!hasAny) {
+        tableBody.innerHTML = "<tr><td colspan='3'>No meetings completed yet.</td></tr>";
+    }
+}
+
+// 6. TEACHER FUNCTIONS (UPDATED)
 function enterTeacherDashboard() {
-    loadData(); // Make sure we have the latest data before logging in
+    loadData(); 
     const enteredCode = document.getElementById("teacher-code-input").value;
     const matchedTeacher = teacherData.find(t => t.code === enteredCode);
     
@@ -284,13 +356,16 @@ function updateTimerDisplay() {
 
 function startTimer() {
     clearInterval(timerInterval); 
+    
+    // Broadcast to the whole school that this meeting is happening!
+    if (queues[currentTeacher].length > 0) {
+        activeMeetings[currentTeacher] = queues[currentTeacher][0].id;
+        saveData(); 
+    }
+
     timerInterval = setInterval(() => {
         teacherSeconds[currentTeacher]++;
         updateTimerDisplay();
-
-        if (teacherSeconds[currentTeacher] === 600) {
-            alert("Time is up! 10 minutes have passed for " + currentTeacher);
-        }
     }, 1000); 
 }
 
@@ -310,8 +385,9 @@ function completeMeeting() {
             notes: finalNotes
         });
 
-        myQueue.shift(); 
-        saveData(); // MAGIC: Save the changes so other windows see the line moving!
+        myQueue.shift(); // Remove from queue
+        activeMeetings[currentTeacher] = null; // Clear the active meeting status
+        saveData(); // Sync everything
         
         document.getElementById('teacher-notes').value = "";
         teacherSeconds[currentTeacher] = 0; 
