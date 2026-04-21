@@ -39,10 +39,22 @@ const rawStudentData = [
     { name: "ANANYA YADAV", code: "1047" }
 ];
 
+const aiFeedbackBank = [
+    "Consistently completes homework on time. Shows great curiosity during science experiments.",
+    "Very talkative with peers, but highly creative. Takes initiative in group projects.",
+    "Excellent attendance and focus. Often helps other students when they are struggling.",
+    "Needs slight improvement in staying seated. Always asks insightful, thought-provoking questions.",
+    "Works quietly and diligently. Produces high-quality assignments across all subjects.",
+    "Highly energetic and enthusiastic. Needs to remember to raise hand before speaking.",
+    "A natural leader in classroom activities. Demonstrates strong problem-solving skills.",
+    "Shows great improvement in math. Very respectful and polite to teachers and staff."
+];
+
 let students = rawStudentData.map((student, index) => {
     let grades = ["A+", "A", "B+", "B"];
     let randomGrade = grades[Math.floor(Math.random() * grades.length)];
     let randomAttendance = Math.floor(Math.random() * 15) + 85; 
+    let randomSummary = aiFeedbackBank[Math.floor(Math.random() * aiFeedbackBank.length)]; 
 
     return {
         id: index,
@@ -50,13 +62,14 @@ let students = rawStudentData.map((student, index) => {
         parentName: "Parent of " + student.name,
         code: student.code,
         grade: "5th - " + randomGrade,
-        attendance: randomAttendance + "%"
+        attendance: randomAttendance + "%",
+        summary: randomSummary 
     };
 });
 
 let queues = {};
 let completedMeetings = {}; 
-let activeMeetings = {}; // NEW: Tracks who is currently inside the classroom!
+let activeMeetings = {}; 
 let teacherSeconds = {}; 
 
 teachers.forEach(teacher => {
@@ -69,6 +82,14 @@ teachers.forEach(teacher => {
 let currentStudent = null;
 let currentTeacher = null;
 let timerInterval;
+
+// NEW: Data Reset Function
+function hardReset() {
+    if(confirm("Are you sure you want to clear all data? Use this if the app gets stuck!")) {
+        localStorage.clear();
+        location.reload();
+    }
+}
 
 // 2. MATH & ALGORITHMS
 function timeStrToSeconds(timeStr) {
@@ -89,11 +110,20 @@ function getTeacherAverage(teacher) {
     return Math.max(1, avgMinutes); 
 }
 
+function isStudentBusy(studentId) {
+    for (let teacher in activeMeetings) {
+        if (activeMeetings[teacher] === studentId && teacher !== currentTeacher) {
+            return teacher; 
+        }
+    }
+    return false;
+}
+
 // 3. STORAGE SYNC
 function saveData() {
     localStorage.setItem('ptm_queues', JSON.stringify(queues));
     localStorage.setItem('ptm_completed', JSON.stringify(completedMeetings));
-    localStorage.setItem('ptm_active', JSON.stringify(activeMeetings)); // Sync active meetings!
+    localStorage.setItem('ptm_active', JSON.stringify(activeMeetings));
 }
 
 function loadData() {
@@ -133,7 +163,7 @@ function logout() {
     showScreen('home-screen');
 }
 
-// 5. PARENT FUNCTIONS (UPDATED)
+// 5. PARENT FUNCTIONS
 function enterParentDashboard() {
     loadData(); 
     const enteredCode = document.getElementById("parent-code-input").value;
@@ -146,7 +176,7 @@ function enterParentDashboard() {
         
         renderTeacherCheckboxes();
         renderParentQueue();
-        renderParentCompletedMeetings(); // Load their personal history!
+        renderParentCompletedMeetings(); 
         showScreen('parent-screen');
     } else {
         alert("Invalid code. Please check your 4-digit student code.");
@@ -170,15 +200,13 @@ function renderTeacherCheckboxes() {
         label.htmlFor = "chk-" + teacher;
         label.innerText = " " + teacher;
 
-        // Check if the parent has already completed a meeting with this teacher
         let hasCompleted = completedMeetings[teacher].find(m => m.childName === currentStudent.childName);
         
         if (hasCompleted) {
-            checkbox.disabled = true; // Lock it!
+            checkbox.disabled = true; 
             label.innerText = " " + teacher + " (Meeting Completed)";
             label.style.color = "#999";
         } else {
-            // Only allow checking if not completed
             if (queues[teacher].find(s => s.id === currentStudent.id)) {
                 checkbox.checked = true;
             }
@@ -214,8 +242,6 @@ function renderParentQueue() {
 
     teachers.forEach(teacher => {
         let queuePosition = queues[teacher].findIndex(s => s.id === currentStudent.id);
-        
-        // Is this specific parent currently in a meeting with this teacher?
         let isMeetingActive = (activeMeetings[teacher] === currentStudent.id);
         
         if (isMeetingActive) {
@@ -223,7 +249,7 @@ function renderParentQueue() {
                 teacherName: teacher,
                 position: 0, 
                 waitTimeText: `<span class="in-progress">MEETING IN PROGRESS! Please go inside.</span>`,
-                sortValue: -1 // Forces it to the very top of the list!
+                sortValue: -1 
             });
         } else if (queuePosition !== -1) {
             let actualPosition = queuePosition + 1; 
@@ -259,7 +285,6 @@ function renderParentCompletedMeetings() {
     let hasAny = false;
 
     teachers.forEach(teacher => {
-        // Find any records for this specific child
         let myRecords = completedMeetings[teacher].filter(m => m.childName === currentStudent.childName);
         
         myRecords.forEach(meeting => {
@@ -279,7 +304,7 @@ function renderParentCompletedMeetings() {
     }
 }
 
-// 6. TEACHER FUNCTIONS (UPDATED)
+// 6. TEACHER FUNCTIONS
 function enterTeacherDashboard() {
     loadData(); 
     const enteredCode = document.getElementById("teacher-code-input").value;
@@ -306,14 +331,32 @@ function renderTeacherQueue() {
 
     if (myQueue.length > 0) {
         let currentParent = myQueue[0];
-        document.getElementById("current-parent").innerText = currentParent.parentName;
+        let busyTeacher = isStudentBusy(currentParent.id); 
+
+        let busyTextHeading = busyTeacher ? `<br><span class="busy-text">⚠️ Currently in meeting with ${busyTeacher}</span>` : "";
+        
+        document.getElementById("current-parent").innerHTML = currentParent.parentName + busyTextHeading;
         document.getElementById("child-name").innerText = currentParent.childName;
         document.getElementById("child-grade").innerText = currentParent.grade;
         document.getElementById("child-attendance").innerText = currentParent.attendance;
         
+        // Safety wrapper to ensure HTML element exists before updating
+        let summaryElement = document.getElementById("child-summary");
+        if (summaryElement) {
+            let safeSummary = currentParent.summary;
+            if (!safeSummary) {
+                let freshStudentData = students.find(s => s.id === currentParent.id);
+                safeSummary = freshStudentData ? freshStudentData.summary : "Always eager to learn and participates well in class.";
+            }
+            summaryElement.innerText = `"${safeSummary}"`;
+        }
+        
         for(let i = 1; i < myQueue.length; i++) {
+            let listBusyTeacher = isStudentBusy(myQueue[i].id);
+            let listBusyText = listBusyTeacher ? ` <br><span class="busy-text">[Busy with ${listBusyTeacher}]</span>` : "";
+            
             const li = document.createElement('li');
-            li.innerText = `#${i + 1} - ${myQueue[i].parentName} (Child: ${myQueue[i].childName})`;
+            li.innerHTML = `#${i + 1} - ${myQueue[i].parentName} (Child: ${myQueue[i].childName})${listBusyText}`;
             queueList.appendChild(li);
         }
     } else {
@@ -321,7 +364,36 @@ function renderTeacherQueue() {
         document.getElementById("child-name").innerText = "-";
         document.getElementById("child-grade").innerText = "-";
         document.getElementById("child-attendance").innerText = "-";
+        
+        let summaryElement = document.getElementById("child-summary");
+        if (summaryElement) summaryElement.innerText = "-"; 
+        
         queueList.innerHTML = "<li>Queue is empty.</li>";
+    }
+}
+
+function skipStudent() {
+    let myQueue = queues[currentTeacher];
+    
+    if (myQueue.length <= 1) {
+        alert("There is no one else in line to skip to!");
+        return;
+    }
+
+    let availableIdx = myQueue.findIndex((student, index) => {
+        return index > 0 && !isStudentBusy(student.id);
+    });
+
+    if (availableIdx !== -1) {
+        let skippedStudent = myQueue[0];
+        myQueue[0] = myQueue[availableIdx];
+        myQueue[availableIdx] = skippedStudent;
+
+        saveData();
+        renderTeacherQueue();
+        alert(`Successfully Skipped! ${myQueue[0].parentName} is now #1.`);
+    } else {
+        alert("Everyone else in your queue is currently busy in other meetings!");
     }
 }
 
@@ -355,11 +427,17 @@ function updateTimerDisplay() {
 }
 
 function startTimer() {
+    let myQueue = queues[currentTeacher];
+    
+    if (myQueue.length > 0 && isStudentBusy(myQueue[0].id)) {
+        alert("Wait! This student is currently in a meeting with another teacher. Please click 'Skip'.");
+        return; 
+    }
+
     clearInterval(timerInterval); 
     
-    // Broadcast to the whole school that this meeting is happening!
-    if (queues[currentTeacher].length > 0) {
-        activeMeetings[currentTeacher] = queues[currentTeacher][0].id;
+    if (myQueue.length > 0) {
+        activeMeetings[currentTeacher] = myQueue[0].id;
         saveData(); 
     }
 
@@ -385,9 +463,9 @@ function completeMeeting() {
             notes: finalNotes
         });
 
-        myQueue.shift(); // Remove from queue
-        activeMeetings[currentTeacher] = null; // Clear the active meeting status
-        saveData(); // Sync everything
+        myQueue.shift(); 
+        activeMeetings[currentTeacher] = null; 
+        saveData(); 
         
         document.getElementById('teacher-notes').value = "";
         teacherSeconds[currentTeacher] = 0; 

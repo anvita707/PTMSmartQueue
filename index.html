@@ -13,6 +13,8 @@
             <h2>Welcome! Who is logging in?</h2>
             <button onclick="showScreen('login-parent-screen')">Login as Parent</button>
             <button onclick="showScreen('login-teacher-screen')">Login as Teacher</button>
+            <br><br>
+            <button class="back-btn" onclick="hardReset()" style="font-size: 12px; padding: 5px 10px;">⚠️ Reset All Demo Data</button>
         </div>
 
         <div id="login-parent-screen" class="screen">
@@ -71,11 +73,13 @@
                     <p><strong>Child Name:</strong> <span id="child-name">-</span></p>
                     <p><strong>Grade/Section:</strong> <span id="child-grade">-</span></p>
                     <p><strong>Attendance:</strong> <span id="child-attendance">-</span></p>
+                    <p><strong>✨ AI Summary:</strong> <span id="child-summary" class="ai-text">-</span></p>
                     <textarea id="teacher-notes" placeholder="Type your notes for the parents here..."></textarea>
                 </div>
 
                 <p class="timer-display">Meeting Time: <span id="timer">00:00</span></p>
                 <button class="start-btn" onclick="startTimer()">Start Meeting</button>
+                <button class="skip-btn" onclick="skipStudent()">Skip (If Busy)</button>
                 <button class="complete-btn" onclick="completeMeeting()">Mark Complete</button>
             </div>
 

@@ -36,6 +36,8 @@ button:hover { background-color: #45a049; }
 .start-btn { background-color: #008CBA; }
 .complete-btn { background-color: #ff9800; }
 .refresh-btn { background-color: #9c27b0; padding: 5px 10px; font-size: 14px;}
+.skip-btn { background-color: #607D8B; }
+.skip-btn:hover { background-color: #455A64; }
 
 input[type="password"] {
     padding: 10px;
@@ -83,6 +85,10 @@ li {
     border: 1px solid #bbdefb;
 }
 
+.student-summary p {
+    margin: 8px 0;
+}
+
 .student-summary textarea {
     width: 90%;
     height: 60px;
@@ -117,9 +123,23 @@ small {
     font-size: 12px;
 }
 
-/* NEW STYLING FOR ACTIVE MEETINGS */
 .in-progress {
     color: #d32f2f;
     font-weight: bold;
     font-size: 16px;
+}
+
+.busy-text {
+    color: #d32f2f;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.ai-text {
+    color: #1565C0;
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.4;
+    display: block;
+    margin-top: 4px;
 }
